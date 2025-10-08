@@ -1,0 +1,25 @@
+substitutions:
+  _REGION: "us-east1"
+  _REPOSITORY: "cicd-artifact-repo"
+  _SERVICE: "bishopllc-storefront-app"
+
+steps:
+# Build & tag with the short commit SHA
+- name: gcr.io/cloud-builders/docker
+  args: ['build','-t','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA','.']
+
+# Push the image
+- name: gcr.io/cloud-builders/docker
+  args: ['push','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA']
+A
+# Deploy to Cloud Run
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: gcloud
+  args:
+    ['run','deploy','$_SERVICE',
+     '--image','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA',
+     '--region','$_REGION',
+     '--service-account','hello-runtime@$PROJECT_ID.iam.gserviceaccount.com',
+     '--allow-unauthenticated']
+images:
+- '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA'
