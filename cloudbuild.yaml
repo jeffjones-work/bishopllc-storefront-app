@@ -1,25 +1,42 @@
+# cloudbuild.yaml
 substitutions:
-  _REGION: "us-east1"
-  _REPOSITORY: "cicd-artifact-repo"
-  _SERVICE: "bishopllc-storefront-app"
+  _REGION: "us-east1"                         # set to your Artifact Registry + Cloud Run region
+  _REPO: "cicd-artifact-repo"
+  _SERVICE: "bishopllc-storefront"
+
+options:
+  logging: CLOUD_LOGGING_ONLY                 # or GCS_ONLY with logsBucket if preferred
 
 steps:
-# Build & tag with the short commit SHA
-- name: gcr.io/cloud-builders/docker
-  args: ['build','-t','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA','.']
+  # 1) Build container
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
+      - "."
 
-# Push the image
-- name: gcr.io/cloud-builders/docker
-  args: ['push','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA']
-A
-# Deploy to Cloud Run
-- name: gcr.io/google.com/cloudsdktool/cloud-sdk
-  entrypoint: gcloud
-  args:
-    ['run','deploy','$_SERVICE',
-     '--image','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA',
-     '--region','$_REGION',
-     '--service-account','hello-runtime@$PROJECT_ID.iam.gserviceaccount.com',
-     '--allow-unauthenticated']
+  # 2) Push to Artifact Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
+
+  # 3) Deploy FROM that image
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "${_SERVICE}"
+      - "--image"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
+      - "--region"
+      - "${_REGION}"
+      - "--service-account"
+      - "cicd_runtime@${PROJECT_ID}.iam.gserviceaccount.com"
+      # add one of:
+      # - "--allow-unauthenticated"   # if public
+      # or use IAM/ingress controls as required
 images:
-- '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_SERVICE:$SHORT_SHA'
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
