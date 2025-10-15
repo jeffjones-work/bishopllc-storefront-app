@@ -8,7 +8,7 @@ options:
   logging: CLOUD_LOGGING_ONLY                 # or GCS_ONLY with logsBucket if preferred
 
 steps:
-  # 1) Build container
+  # 1) BUILD container
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
@@ -16,13 +16,13 @@ steps:
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
       - "."
 
-  # 2) Push to Artifact Registry
+  # 2) PUSH to Artifact Registry
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
 
-  # 3) Deploy FROM that image
+  # 3) DEPLOY
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
@@ -33,8 +33,9 @@ steps:
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
       - "--region"
       - "${_REGION}"
-      - "--service-account"
-      - "cicd_runtime@${PROJECT_ID}.iam.gserviceaccount.com"
+      - --service-account
+      - cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com
+
       # add one of:
       # - "--allow-unauthenticated"   # if public
       # or use IAM/ingress controls as required
