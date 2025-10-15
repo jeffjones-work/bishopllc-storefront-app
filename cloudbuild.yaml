@@ -2,7 +2,7 @@
 substitutions:
   _REGION: "us-east1"                         # set to your Artifact Registry + Cloud Run region
   _REPO: "cicd-artifact-repo"
-  _SERVICE: "bishopllc-storefront"
+  _SERVICE: "bishopllc-storefront-app"
 
 options:
   logging: CLOUD_LOGGING_ONLY                 # or GCS_ONLY with logsBucket if preferred
