@@ -35,6 +35,7 @@ steps:
       - "${_REGION}"
       - "--service-account"
       - cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com
+      - "--allow-unauthenticated"
 
       # add one of:
       # - "--allow-unauthenticated"   # if public
