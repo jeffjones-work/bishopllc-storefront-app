@@ -9,7 +9,8 @@ options:
 
 steps:
   # 1) BUILD container
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "BUILD docker container"
+    name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
       - "-t"
@@ -17,13 +18,15 @@ steps:
       - "."
 
   # 2) PUSH to Artifact Registry
-  - name: "gcr.io/cloud-builders/docker"
+  - id: "PUSH to Artifact Registry"
+    name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
 
   # 3) DEPLOY
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+  - id: "DEPLOY to Cloud Run Environment"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
       - "run"
