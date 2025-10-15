@@ -33,7 +33,7 @@ steps:
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
       - "--region"
       - "${_REGION}"
-      - --service-account
+      - "--service-account"
       - cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com
 
       # add one of:
