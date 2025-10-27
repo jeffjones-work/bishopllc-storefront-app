@@ -24,24 +24,31 @@ steps:
       - "push"
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
 
+  # 2.5) LOOK UP DIGEST for the just-pushed tag
+  - id: "RESOLVE digest"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        REF="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
+        DIGEST=$(gcloud artifacts docker images describe "$REF" --format='get(image_summary.digest)')
+        echo "DIGEST=$DIGEST" | tee /workspace/digest
+      
+
   # 3) DEPLOY
   - id: "DEPLOY to Cloud Run Environment"
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - "run"
-      - "deploy"
-      - "${_SERVICE}"
-      - "--image"
-      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
-      - "--region"
-      - "${_REGION}"
-      - "--service-account"
-      - cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com
-      
+      - -ceu
+      - |
+        source /workspace/digest
+        gcloud run deploy "${_SERVICE}" \
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}@${DIGEST}" \
+          --region "${_REGION}" \
+          --service-account cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com      
 
-      # add one of:
-      # - "--allow-unauthenticated"   # if public
-      # or use IAM/ingress controls as required
+
 images:
   - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
