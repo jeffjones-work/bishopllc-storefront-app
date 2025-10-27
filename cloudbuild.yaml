@@ -31,9 +31,9 @@ steps:
     args:
       - -ceu
       - |
-        REF="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
-        DIGEST=$(gcloud artifacts docker images describe "$REF" --format='get(image_summary.digest)')
-        echo "DIGEST=$DIGEST" > /workspace/digest
+       REF="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
+       DIGEST=$(gcloud artifacts docker images describe "$$REF" --format='get(image_summary.digest)')
+       echo "DIGEST=$$DIGEST" > /workspace/digest
       
 
   # 3) DEPLOY
@@ -45,7 +45,7 @@ steps:
       - |
         source /workspace/digest
         gcloud run deploy "${_SERVICE}" \
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}@$DIGEST" \
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}@$$DIGEST" \
           --region "${_REGION}" \
           --service-account cicd-runtime@warm-capsule-470118-i5.iam.gserviceaccount.com      
 
