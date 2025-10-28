@@ -1,0 +1,35 @@
+# Deploy-by-digest (expects an already-attested digest)
+
+substitutions:
+  _IMAGE: "us-east1-docker.pkg.dev/warm-capsule-470118-i5/cicd-artifact-repo/bishopllc-storefront-app@sha256:c480f7fcb917751bd98622bad74ffdeff79f27db203c6df179aa548a9b9d7c64"                                    # Artifact Registry > select artifact > Copy Path
+  _SERVICE: "bishopllc-storefront-app"
+  _REGION: "us-east1"
+  _ATTESTOR: "projects/warm-capsule-470118-i5/attestors/itsec-approvers"                   # must match policy
+  _ATTESTOR_PROJECT: "warm-capsule-470118-i5"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - id: "verify attestation exists"
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud container binauthz attestations list \
+          --artifact-url="$_IMAGE" \
+          --attestor="$_ATTESTOR" \
+          --attestor-project="$_ATTESTOR_PROJECT" \
+          --format="value(name)" | grep -q . || {
+          echo "No attestation found for $_IMAGE and $_ATTESTOR"; exit 1; }
+
+  - id: "deploy by digest"
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy "$_SERVICE" \
+          --image "$_IMAGE" \
+          --region "$_REGION"
