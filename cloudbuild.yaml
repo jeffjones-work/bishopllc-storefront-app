@@ -24,7 +24,7 @@ steps:
       - "push"
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
 
-  # 2.5) LOOK UP DIGEST for the just-pushed tag
+  # 2.5) LOOK UP DIGEST and then PubSub publish to images.built
   - id: "RESOLVE digest"
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: bash
@@ -34,6 +34,9 @@ steps:
        REF="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA"
        DIGEST=$(gcloud artifacts docker images describe "$$REF" --format='get(image_summary.digest)')
        echo "DIGEST=$$DIGEST" > /workspace/digest
+       gcloud pubsub topics publish images.built \
+         --message='{"image":"us-east1-docker.pkg.dev/.../bishopllc-storefront-app","digest":"sha256:..."}'
+
          
   # 2.6) PUBLISH (PubSub) a build-complete event with image + digest
   - id: "PUBLISH images.built"
