@@ -35,6 +35,17 @@ steps:
        DIGEST=$(gcloud artifacts docker images describe "$$REF" --format='get(image_summary.digest)')
        echo "DIGEST=$$DIGEST" > /workspace/digest
          
+  # 2.6) PUBLISH (PubSub) a build-complete event with image + digest
+  - id: "PUBLISH images.built"
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        source /workspace/digest
+        IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}@${DIGEST}"
+        gcloud pubsub topics publish images.built \
+          --message="{\"image\":\"${IMAGE}\",\"service\":\"${_SERVICE}\",\"region\":\"${_REGION}\",\"commit\":\"${COMMIT_SHA}\"}"
 
 
 images:
