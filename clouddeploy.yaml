@@ -1,28 +1,39 @@
-# Deploy-by-digest (expects an already-attested digest)
+# clouddeploy.yaml (deploy-by-digest from images.approved)
 
 substitutions:
-  _IMAGE: "us-east1-docker.pkg.dev/warm-capsule-470118-i5/cicd-artifact-repo/bishopllc-storefront-app@sha256:c480f7fcb917751bd98622bad74ffdeff79f27db203c6df179aa548a9b9d7c64"                                    # Artifact Registry > select artifact > Copy Path
   _SERVICE: "bishopllc-storefront-app"
   _REGION: "us-east1"
-  _ATTESTOR: "projects/warm-capsule-470118-i5/attestors/itsec-approvers"                   # must match policy
+  _ATTESTOR: "itsec-approver"                 # use the exact attestor name that policy requires
   _ATTESTOR_PROJECT: "warm-capsule-470118-i5"
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+  - id: "extract approved image"
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        echo "$BUILD_TRIGGER_MESSAGE" | tee /workspace/approved.json
+        IMAGE=$(jq -r '.image // empty' /workspace/approved.json)
+        [[ -n "$IMAGE" ]] || { echo "images.approved message missing .image"; exit 2; }
+        echo "IMAGE=$IMAGE" | tee /workspace/image.txt
+
   - id: "verify attestation exists"
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: bash
     args:
       - -ceu
       - |
+        source /workspace/image.txt
         gcloud container binauthz attestations list \
-          --artifact-url="$_IMAGE" \
+          --artifact-url="$IMAGE" \
           --attestor="$_ATTESTOR" \
           --attestor-project="$_ATTESTOR_PROJECT" \
           --format="value(name)" | grep -q . || {
-          echo "No attestation found for $_IMAGE and $_ATTESTOR"; exit 1; }
+          echo "No attestation found for $IMAGE and $_ATTESTOR"; exit 1; }
 
   - id: "deploy by digest"
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -30,6 +41,5 @@ steps:
     args:
       - -ceu
       - |
-        gcloud run deploy "$_SERVICE" \
-          --image "$_IMAGE" \
-          --region "$_REGION"
+        source /workspace/image.txt
+        gcloud run deploy "$_SERVICE" --image "$IMAGE" --region "$_REGION"
